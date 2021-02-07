@@ -6,11 +6,10 @@ import java.io.DataOutputStream
 import java.net.Socket
 import java.net.InetAddress
 
-import java.util.Properties
 import scala.io.Source
-import java.io.FileInputStream
 
 import org.htmlcleaner.HtmlCleaner
+
 
 /**
  * @author ${user.name}
@@ -18,57 +17,56 @@ import org.htmlcleaner.HtmlCleaner
 object App {
 
   
-  var url = ""
-  var port = 0
-  var interval = 0
-  var maxMessageSize = 0
-
-
   def cleanMessage(s: String): String = {
-    
+    // Get rid of special symbols and 
     s.replaceAll("[ .,;—«»]|(&nbsp)|(&#33)", " ")
   }
-
-  def loadProperties(configFile: String): Unit = {
-
-  	val properties: Properties = new Properties()
-	val inStream = new FileInputStream(configFile)
-	properties.load(inStream)
-	inStream.close()
-	port = properties.getProperty("port").toInt
-	interval = properties.getProperty("interval").toInt
-	maxMessageSize = properties.getProperty("message_max_size").toInt
-	url = properties.getProperty("url")
-
-  }
-
   
+
   def main(args : Array[String]) {
 
-  	println("Loading configuration.." )
+  	println("Starting scraper.." )
+
+  	// Load configuration from the properties file
   	loadProperties("application.properties")
   	
+  	// Open the port and wait for a connection
   	val server = new ServerSocket(port)
-
-	val s = server.accept
+  	val s = server.accept
 	println("Connection accepted")
 	val printStream = new PrintStream(s.getOutputStream())
-	 while(true) { 
+
+	// Prepare the HTML parser
+	val cleaner = new HtmlCleaner
+	val msgClass = "tgme_widget_message_text js-message_text"
+
+	// Scrape the page with a given interval
+	while(true) { 
 	    println("New iteration")
+	    
+	    // Get the page HTML
 	    val resp = scala.io.Source.fromURL(url).mkString
-	    val cleaner = new HtmlCleaner
+	    
+	    // Parse the HTML and extract the text elements
 	    val node = cleaner.clean(resp)
-	    val msgClass = "tgme_widget_message_text js-message_text"
 	    val msgs = node.getElementsByAttValue("class", msgClass, true, false)
-	     val msgsCleaned = msgs.map(x=> {
+
+	    // For every text element, extract and clean the content
+	    val msgsCleaned = msgs.map(x=> {
                                     val chldr = x.getChildTags
                                     val txt = chldr(0).getText.toString
                                     cleanMessage(txt).split(" ").filter(_.length > 0).mkString(" ")
                                     }
                               )
+	    
+	    // Print the cleaned text to console
 	    msgsCleaned.foreach(x => println(x.take(maxMessageSize)))
+	    
+	    // Send the cleaned text to the client
 	    msgsCleaned.foreach(printStream.println)
 	    println("------------------")
+
+	    // Wait before the next iteration
 	    Thread.sleep(interval)
 	 }
   }
