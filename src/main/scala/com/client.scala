@@ -4,6 +4,7 @@ import java.sql.Timestamp
 import org.apache.spark.sql.SparkSession
 import org.apache.spark.SparkContext
 import org.apache.spark.sql.functions._
+import org.apache.spark.SparkFiles
 
 import com.johnsnowlabs.nlp.pretrained.PretrainedPipeline
 
@@ -18,18 +19,25 @@ object Client {
 
 	 	println("Staring sentiment analyser")
 
-	 	// Load configuration from the properties file
-	 	loadProperties("application.properties")
 	 	
-	 	// Load the Spark NLP pipeline
-	 	val pipeline = PretrainedPipeline("analyze_sentimentdl_use_imdb", "en")
 
+	 	
 	 	// Get Spark session created by Spark NLP
 		val spark = SparkSession
 			 .builder()
-			 .appName("Example")
+			 .appName("APPPP!!!!!!!!!!")
+			 .master("spark://spark:7077")
 			 //.config("spark.executor.memory", "16g")
 			 .getOrCreate()
+
+		// Load configuration from the properties file
+	 	val propertiesFile = SparkFiles.get("application.properties")
+	 	println(propertiesFile)
+	 	loadProperties(propertiesFile)
+
+	 	// Load the Spark NLP pipeline
+	 	println("Using pipeline " + pipelineName)
+	 	val pipeline = PretrainedPipeline(pipelineName, "en")
 
 		// Get rid of excessive logging
 		val sc = spark.sparkContext
@@ -41,7 +49,7 @@ object Client {
 
 		//  Read stream of text messages from a socket
 		val lines = spark.readStream.format("socket")
-									.option("host", "localhost")
+									.option("host", "scraper")
 									.option("port", port)
 									.option("includeTimestamp", true).load()
 

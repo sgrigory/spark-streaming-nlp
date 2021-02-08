@@ -11,6 +11,7 @@ package object test {
     var interval = 0
     var maxMessageSize = 0
     var watermark = ""
+    var pipelineName = ""
 
 
 	def loadProperties(configFile: String): Unit = {
@@ -30,6 +31,8 @@ package object test {
 		url = properties.getProperty("url")
 		// Time window within which the client deduplicates messages 
 		watermark = properties.getProperty("watermark")
+		// Spark NLP pretrained pipeline 
+		pipelineName = properties.getProperty("pipeline")
 
 	  }
 
