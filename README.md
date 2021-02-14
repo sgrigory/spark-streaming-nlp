@@ -14,6 +14,5 @@ Configurations are in `application.properties`
 
 docker-compose up
 
-spark-submit --deploy-mode cluster --master spark://localhost:7077 --driver-memory 2G --files /usr/home/application.properties --class com.test.Client /usr/home/streaming-0.0.1-jar-with-dependencies.jar
 ```
 
