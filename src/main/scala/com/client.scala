@@ -1,10 +1,30 @@
 package com.test
 
+import scala.io.Source
+import scala.concurrent.Future
+//import java.util.concurrent.Executors
 import java.sql.Timestamp
 import org.apache.spark.sql.SparkSession
 import org.apache.spark.SparkContext
 import org.apache.spark.sql.functions._
 import org.apache.spark.SparkFiles
+
+import akka.actor.ActorSystem
+
+import akka.http.scaladsl.Http
+import akka.http.scaladsl.model._
+import akka.http.scaladsl.server.Directives._
+
+
+import akka.http.scaladsl.model.{ ContentTypes, HttpEntity }
+import akka.http.scaladsl.server.HttpApp
+import akka.http.scaladsl.server.Route
+
+
+import com.typesafe.config.ConfigFactory
+
+import scala.util.Random
+
 
 import com.johnsnowlabs.nlp.pretrained.PretrainedPipeline
 
@@ -20,13 +40,11 @@ object Client {
 	 	println("Staring sentiment analyser")
 
 	 	
-
-	 	
 	 	// Get Spark session created by Spark NLP
 		val spark = SparkSession
 			 .builder()
 			 .appName("APPPP!!!!!!!!!!")
-			 .master("spark://spark:7077")
+			 //.master("spark://spark:7077")
 			 //.config("spark.executor.memory", "16g")
 			 .getOrCreate()
 
@@ -34,7 +52,7 @@ object Client {
 	 	val propertiesFile = SparkFiles.get("application.properties")
 	 	println(propertiesFile)
 	 	loadProperties(propertiesFile)
-
+	 	
 	 	// Load the Spark NLP pipeline
 	 	println("Using pipeline " + pipelineName)
 	 	val pipeline = PretrainedPipeline(pipelineName, "en")
@@ -49,7 +67,7 @@ object Client {
 
 		//  Read stream of text messages from a socket
 		val lines = spark.readStream.format("socket")
-									.option("host", "scraper")
+									.option("host", scraperHost)
 									.option("port", port)
 									.option("includeTimestamp", true).load()
 
@@ -66,9 +84,50 @@ object Client {
 		val counts = sentim.groupBy("result").count()
 
 		// Output the count to the console
-		val queryCounts = counts.writeStream.outputMode("complete").format("console").start()
+		//val queryCounts = counts.writeStream.outputMode("complete").format("console").start()
+		
+		val queryCounts = counts.writeStream.outputMode("complete").queryName("results").format("memory").start()
 
-		spark.streams.awaitAnyTermination()
+		implicit val ec = scala.concurrent.ExecutionContext.Implicits.global
+
+		Future {
+			println("----- awaitAnyTermination ------")
+			spark.streams.awaitAnyTermination()
+		}
+
+
+
+		val smallConfig = ConfigFactory.parseString("""
+			akka.log-config-on-start = on
+			akka.actor.enable-additional-serialization-bindings = on
+			""")
+
+	 	// Start the REST API server to output the results
+
+	 	println("creating ActorSystem .......")
+	 	implicit val system = ActorSystem("AAA", smallConfig)
+
+
+
+		//Server definition
+		object WebServer extends HttpApp {
+		  override def routes: Route =
+		    path("hello") {
+		      get {
+		        complete(spark.sql("select * from results").toJSON.collect().mkString("[", ", ", "]"))
+		    
+		      }
+		    }
+		}
+
+		
+		// Starting the server
+
+
+		Future {
+			WebServer.startServer("localhost", 8085)
+		}
+
 			
 	 }
 

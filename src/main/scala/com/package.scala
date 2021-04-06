@@ -12,6 +12,8 @@ package object test {
     var maxMessageSize = 0
     var watermark = ""
     var pipelineName = ""
+    var restPort = 0
+    var scraperHost = ""
 
 
 	def loadProperties(configFile: String): Unit = {
@@ -33,6 +35,10 @@ package object test {
 		watermark = properties.getProperty("watermark")
 		// Spark NLP pretrained pipeline 
 		pipelineName = properties.getProperty("pipeline")
+		// Port for the REST API with output stats
+		restPort = properties.getProperty("rest_port").toInt
+
+		scraperHost = properties.getProperty("scraper_host")
 
 	  }
 
