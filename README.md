@@ -17,4 +17,4 @@ mvn package
 docker-compose up
 
 ```
-
+The outputs are available in JSON format at `http://localhost:8085/hello`
