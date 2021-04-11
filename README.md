@@ -10,6 +10,8 @@ Configurations are in `application.properties`
 # Build & run
 
 ```
+mvn package
+
 ./build.sh
 
 docker-compose up

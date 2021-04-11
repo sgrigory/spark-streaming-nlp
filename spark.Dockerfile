@@ -17,9 +17,9 @@ EXPOSE ${SPARK_MASTER_PORT} ${spark_master_web_ui}
 
 COPY run_spark.sh ${SPARK_HOME}/
 COPY application.properties ${SPARK_HOME}/
-COPY application.properties /usr/home/
+COPY application.properties src/main/resources/reference.conf /usr/home/
 
-COPY target/streaming-0.0.1-jar-with-dependencies.jar /usr/home/
+COPY target/streaming-0.0.1-allinone.jar /usr/home/
 
 WORKDIR ${SPARK_HOME}
 

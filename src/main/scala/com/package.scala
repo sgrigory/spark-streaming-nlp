@@ -37,7 +37,7 @@ package object test {
 		pipelineName = properties.getProperty("pipeline")
 		// Port for the REST API with output stats
 		restPort = properties.getProperty("rest_port").toInt
-
+		// Name of the host where the scraper is running
 		scraperHost = properties.getProperty("scraper_host")
 
 	  }

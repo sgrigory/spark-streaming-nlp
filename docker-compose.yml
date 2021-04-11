@@ -2,11 +2,12 @@ version: "3.6"
 services:
   scraper:
     image: scraper
-    ports:
-      - 9093:9093
+    expose:
+      - "9093"
   spark:
     image: spark
     ports:
+      - 80:80
       - 8080:8080
-      - 8081:8081
+      - 8085:8085
       - 7077:7077

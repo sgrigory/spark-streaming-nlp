@@ -2,7 +2,6 @@ package com.test
 
 import scala.io.Source
 import scala.concurrent.Future
-//import java.util.concurrent.Executors
 import java.sql.Timestamp
 import org.apache.spark.sql.SparkSession
 import org.apache.spark.SparkContext
@@ -39,18 +38,16 @@ object Client {
 
 	 	println("Staring sentiment analyser")
 
-	 	
 	 	// Get Spark session created by Spark NLP
 		val spark = SparkSession
 			 .builder()
-			 .appName("APPPP!!!!!!!!!!")
-			 //.master("spark://spark:7077")
+			 .appName("SparkStreamingNLP")
+			 .master("spark://spark:7077")
 			 //.config("spark.executor.memory", "16g")
 			 .getOrCreate()
 
 		// Load configuration from the properties file
 	 	val propertiesFile = SparkFiles.get("application.properties")
-	 	println(propertiesFile)
 	 	loadProperties(propertiesFile)
 	 	
 	 	// Load the Spark NLP pipeline
@@ -86,30 +83,30 @@ object Client {
 		// Output the count to the console
 		//val queryCounts = counts.writeStream.outputMode("complete").format("console").start()
 		
+		// Output the count to a table in memory
 		val queryCounts = counts.writeStream.outputMode("complete").queryName("results").format("memory").start()
 
 		implicit val ec = scala.concurrent.ExecutionContext.Implicits.global
 
+		// Process the Spark stream defined above in a non-blocking way
 		Future {
 			println("----- awaitAnyTermination ------")
 			spark.streams.awaitAnyTermination()
 		}
 
+		// -----------------------------------------------
+	 	// Start the REST API server to output the results
+	 	// -----------------------------------------------
 
-
-		val smallConfig = ConfigFactory.parseString("""
+	 	val smallConfig = ConfigFactory.parseString("""
 			akka.log-config-on-start = on
 			akka.actor.enable-additional-serialization-bindings = on
 			""")
 
-	 	// Start the REST API server to output the results
-
 	 	println("creating ActorSystem .......")
-	 	implicit val system = ActorSystem("AAA", smallConfig)
+	 	implicit val system = ActorSystem("Server", smallConfig)
 
-
-
-		//Server definition
+		// Server definition
 		object WebServer extends HttpApp {
 		  override def routes: Route =
 		    path("hello") {
@@ -120,12 +117,9 @@ object Client {
 		    }
 		}
 
-		
-		// Starting the server
-
-
+		// Starting the server in a non-blocking way
 		Future {
-			WebServer.startServer("localhost", 8085)
+			WebServer.startServer("0.0.0.0", restPort)
 		}
 
 			
